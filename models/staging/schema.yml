@@ -1,0 +1,135 @@
+version: 2
+
+models:
+  # --- Geography Models ---
+  - name: stg_region
+    description: "Staging model for regions. Standardized column names."
+    columns:
+      - name: region_id
+        description: "Primary key for the region."
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_nation
+    description: "Staging model for nations. Standardized column names."
+    columns:
+      - name: nation_id
+        description: "Primary key for the nation."
+        tests:
+          - unique
+          - not_null
+      - name: region_id
+        description: "Foreign key to stg_region."
+        tests:
+          - relationships:
+              to: ref('stg_region')
+              field: region_id
+
+  # --- Core Business Models ---
+  - name: stg_customer
+    description: "Staging model for customers. Standardized column names."
+    columns:
+      - name: customer_id
+        description: "Primary key for the customer."
+        tests:
+          - unique
+          - not_null
+      - name: nation_id
+        description: "Foreign key to stg_nation."
+        tests:
+          - relationships:
+              to: ref('stg_nation')
+              field: nation_id
+
+  - name: stg_orders
+    description: "Staging model for order headers. Standardized column names."
+    columns:
+      - name: order_id
+        description: "Primary key for the order."
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: "Foreign key to stg_customer."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customer')
+              field: customer_id
+      - name: order_status
+        description: "Status of the order (F, O, P)."
+        tests:
+          - accepted_values:
+              values: ['F', 'O', 'P']
+
+  - name: stg_lineitem
+    description: "Staging model for order line items. Standardized column names. Grain is composite: order_id + line_number."
+    columns:
+      - name: order_id
+        description: "Foreign key to stg_orders. Part of composite primary key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      - name: line_number
+        description: "Line number within the order. Part of composite primary key."
+        tests:
+          - not_null
+      - name: part_id
+        description: "Foreign key to stg_part."
+        tests:
+          - relationships:
+              to: ref('stg_part')
+              field: part_id
+      - name: supplier_id
+        description: "Foreign key to stg_supplier. Set to warn to satisfy T-07 severity requirements."
+        tests:
+          - relationships:
+              to: ref('stg_supplier')
+              field: supplier_id
+              severity: warn
+
+  # --- Supply Chain Models ---
+  - name: stg_part
+    description: "Staging model for parts/products. Standardized column names."
+    columns:
+      - name: part_id
+        description: "Primary key for the part."
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_supplier
+    description: "Staging model for suppliers. Standardized column names."
+    columns:
+      - name: supplier_id
+        description: "Primary key for the supplier."
+        tests:
+          - unique
+          - not_null
+      - name: nation_id
+        description: "Foreign key to stg_nation."
+        tests:
+          - relationships:
+              to: ref('stg_nation')
+              field: nation_id
+
+  - name: stg_partsupp
+    description: "Staging model for the part-supplier bridge table. Standardized column names. Grain is composite: part_id + supplier_id."
+    columns:
+      - name: part_id
+        description: "Foreign key to stg_part. Part of composite primary key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_part')
+              field: part_id
+      - name: supplier_id
+        description: "Foreign key to stg_supplier. Part of composite primary key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_supplier')
+              field: supplier_id

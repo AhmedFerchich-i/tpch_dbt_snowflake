@@ -1,0 +1,134 @@
+version: 2
+
+sources:
+  - name: dbt_learning_sample_data
+    description: "Snowflake's read-only TPC-H 1GB sample dataset. Used as our raw source."
+    database: SNOWFLAKE_SAMPLE_DATA
+    schema: TPCH_SF1
+    
+    tables:
+      # --- Geography Tables ---
+      - name: region
+        description: "Geographic regions. Grain: one row per region."
+        columns:
+          - name: r_regionkey
+            description: "Primary key."
+            tests:
+              - unique
+              - not_null
+
+      - name: nation
+        description: "Nations mapped to regions. Grain: one row per nation."
+        columns:
+          - name: n_nationkey
+            description: "Primary key."
+            tests:
+              - unique
+              - not_null
+          - name: n_regionkey
+            description: "Foreign key to region. Many-to-One relationship."
+            tests:
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'region')
+                  field: r_regionkey
+
+      # --- Core Business Tables ---
+      - name: customer
+        description: "Customer directory. Grain: one row per customer."
+        columns:
+          - name: c_custkey
+            description: "Primary key."
+            tests:
+              - unique
+              - not_null
+          - name: c_nationkey
+            description: "Foreign key to nation. Many-to-One relationship."
+            tests:
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'nation')
+                  field: n_nationkey
+
+      - name: orders
+        description: "Order headers. Grain: one row per customer order."
+        columns:
+          - name: o_orderkey
+            description: "Primary key."
+            tests:
+              - unique
+              - not_null
+          - name: o_custkey
+            description: "Foreign key to customer. Many-to-One relationship."
+            tests:
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'customer')
+                  field: c_custkey
+
+      - name: lineitem
+        description: "Order line items. ."
+        columns:
+          - name: l_orderkey
+            description: "Foreign key to orders. Part of composite primary key."
+            tests:
+              - not_null
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'orders')
+                  field: o_orderkey
+          - name: l_linenumber
+            description: "Line number within the order. Part of composite primary key."
+            tests:
+              - not_null
+          - name: l_partkey
+            description: "Foreign key to part."
+            tests:
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'part')
+                  field: p_partkey
+          - name: l_suppkey
+            description: "Foreign key to supplier."
+            tests:
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'supplier')
+                  field: s_suppkey
+
+      # --- Supply Chain Tables ---
+      - name: part
+        description: "Parts/products catalog. Grain: one row per part."
+        columns:
+          - name: p_partkey
+            description: "Primary key."
+            tests:
+              - unique
+              - not_null
+
+      - name: supplier
+        description: "Supplier directory. Grain: one row per supplier."
+        columns:
+          - name: s_suppkey
+            description: "Primary key."
+            tests:
+              - unique
+              - not_null
+          - name: s_nationkey
+            description: "Foreign key to nation. Many-to-One relationship."
+            tests:
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'nation')
+                  field: n_nationkey
+
+      - name: partsupp
+        description: "Bridge table linking parts to suppliers. Grain: one row per part supplied by a specific supplier."
+        columns:
+          - name: ps_partkey
+            description: "Foreign key to part. Part of composite primary key."
+            tests:
+              - not_null
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'part')
+                  field: p_partkey
+          - name: ps_suppkey
+            description: "Foreign key to supplier. Part of composite primary key."
+            tests:
+              - not_null
+              - relationships:
+                  to: source('dbt_learning_sample_data', 'supplier')
+                  field: s_suppkey

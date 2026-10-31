@@ -1,0 +1,10 @@
+dbt_playground:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      role: AHMEDFERCHICHI
+      warehouse: SNOWFLAKE_LEARNING_WH
+      database: SANDBOX
+      schema: AHMEDF
+      threads: 8

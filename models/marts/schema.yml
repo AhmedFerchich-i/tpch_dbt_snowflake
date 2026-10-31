@@ -1,0 +1,178 @@
+version: 2
+
+models:
+  # --- Dimension Models ---
+  - name: dim_customer
+    description: "Customer dimension with denormalized nation and region attributes."
+    columns:
+      - name: customer_id
+        description: "Primary key for the customer."
+        tests:
+          - unique
+          - not_null
+      - name: customer_name
+        description: "Name of the customer."
+      - name: address
+        description: "Customer address."
+      - name: phone
+        description: "Customer phone number."
+      - name: market_segment
+        description: "Market segment the customer belongs to."
+      - name: account_balance
+        description: "Customer account balance."
+      - name: region_id
+        description: "Foreign key to region."
+      - name: region_name
+        description: "Name of the region."
+      - name: nation_name
+        description: "Name of the nation."
+      - name: nation_id
+        description: "Foreign key to nation."
+
+  - name: dim_orders
+    description: "Order dimension with header-level order details."
+    columns:
+      - name: order_id
+        description: "Primary key for the order."
+        tests:
+          - unique
+          - not_null
+      - name: order_date
+        description: "Date the order was placed."
+      - name: order_status
+        description: "Status of the order (F, O, P)."
+        tests:
+          - accepted_values:
+              values: ['F', 'O', 'P']
+      - name: order_priority
+        description: "Priority level of the order."
+      - name: clerk
+        description: "Clerk who handled the order."
+      - name: comment
+        description: "Order comment."
+      - name: ship_priority
+        description: "Shipping priority."
+
+  - name: dim_part
+    description: "Part dimension with product attributes."
+    columns:
+      - name: part_id
+        description: "Primary key for the part."
+        tests:
+          - unique
+          - not_null
+      - name: part_name
+        description: "Name of the part."
+      - name: manufacturer
+        description: "Manufacturer of the part."
+      - name: brand
+        description: "Brand of the part."
+      - name: part_type
+        description: "Type/category of the part."
+      - name: part_size
+        description: "Size of the part."
+      - name: container
+        description: "Container type for the part."
+      - name: retail_price
+        description: "Retail price of the part."
+      - name: comment
+        description: "Part comment."
+
+  - name: dim_supplier
+    description: "Supplier dimension with denormalized nation attributes."
+    columns:
+      - name: supplier_id
+        description: "Primary key for the supplier."
+        tests:
+          - unique
+          - not_null
+      - name: supplier_name
+        description: "Name of the supplier."
+      - name: address
+        description: "Supplier address."
+      - name: phone
+        description: "Supplier phone number."
+      - name: account_balance
+        description: "Supplier account balance."
+      - name: comment
+        description: "Supplier comment."
+      - name: nation_name
+        description: "Name of the supplier's nation."
+      - name: region_id
+        description: "Foreign key to region."
+
+  # --- Fact Models ---
+  - name: fct_lineitem
+    description: "Line item fact table with order line-level measures. Grain: one row per order line (order_id + line_number)."
+    columns:
+      - name: order_id
+        description: "Foreign key to dim_orders."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_orders')
+              field: order_id
+      - name: line_number
+        description: "Line number within the order. Part of composite primary key."
+        tests:
+          - not_null
+      - name: part_id
+        description: "Foreign key to dim_part."
+        tests:
+          - relationships:
+              to: ref('dim_part')
+              field: part_id
+      - name: supplier_id
+        description: "Foreign key to dim_supplier."
+        tests:
+          - relationships:
+              to: ref('dim_supplier')
+              field: supplier_id
+      - name: quantity
+        description: "Quantity ordered."
+      - name: extended_price
+        description: "Extended price (unit price * quantity)."
+      - name: discount
+        description: "Discount percentage applied."
+      - name: tax
+        description: "Tax rate applied."
+      - name: discounted_price
+        description: "Price after discount: extended_price * (1 - discount)."
+      - name: total_price
+        description: "Final price with tax: discounted_price * (1 + tax)."
+      - name: return_flag
+        description: "Return flag (R = returned, A = accepted, N = none)."
+      - name: line_status
+        description: "Line status (F = filled, O = open)."
+      - name: ship_date
+        description: "Date the line item was shipped."
+      - name: commit_date
+        description: "Committed delivery date."
+      - name: receipt_date
+        description: "Actual receipt date."
+      - name: ship_instruct
+        description: "Shipping instructions."
+      - name: ship_mode
+        description: "Shipping mode (e.g., AIR, TRUCK, SHIP)."
+
+  - name: fct_partsupp
+    description: "Part-supplier fact table with supply cost and availability. Grain: one row per part-supplier combination."
+    columns:
+      - name: part_id
+        description: "Foreign key to dim_part. Part of composite primary key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_part')
+              field: part_id
+      - name: supplier_id
+        description: "Foreign key to dim_supplier. Part of composite primary key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_supplier')
+              field: supplier_id
+      - name: supply_cost
+        description: "Cost to supply this part from this supplier."
+      - name: avail_qty
+        description: "Available quantity from this supplier."
